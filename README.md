@@ -1,4 +1,4 @@
-### 2025 Microsoft AI Agent Hackathon
+### 2025 SSE Business lab x Microsoft x KTH AI Society Hackathon
 
 ## Core idea:
 Predicts whether or not a person will jaywalk upon stopping at a crosswalk (entering the frame).
