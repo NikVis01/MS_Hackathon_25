@@ -17,7 +17,8 @@ The predicted movement is based mainly off of approach velocity to the crosswalk
 # Preliminary code structure:
 - Main.py will contain the app itself as well as entrypoint, so either web or locally running using openCV
 - Infer.py will most likely run some YOLO model for image classification and bounding boxes
-- Predictor.py will run the NN for movement prediction. Draws arrows for predicted direction, etc... 
+- Predictor.py will run the NN for movement prediction. Draws arrows for predicted direction, etc...
+- gen_data.py creates synthetic data for trianing predictor.py 
 
 # Naming ideas:
 - Rush detector
