@@ -10,3 +10,25 @@ Cameras will stream livefeeds to a website that will sent warningsignals to the 
 
 # Preliminary code structure:
 
+<div align="center">
+  <div class="mermaid">
+    graph TD
+      YOLO --> ML --> PYTHON
+      YOLO --> PYTHON
+      Cams --> PYTHON
+      PYTHON -- FastAPI --> JavaScript --> HTML
+      JavaScript --> cssTailwind[CSS & Tailwind]
+      JavaScript --> Cams
+      JavaScript --> prompts --> encode --> weightsbiases[weights & biases] --> vekdat[vector data]
+      weightsbiases --> output
+
+  </div>
+</div>
+
+## Important Steps
+
+1. Online platform with FIGMA
+2. Finish RB-track
+3. Connect input data, CAWS/Azure
+4. Meta SAM implementation
+
