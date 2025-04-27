@@ -8,7 +8,6 @@ Identifies 2 cases upon stopping at a crosswalk:
 
 The predicted movement is based mainly off of approach velocity to the crosswalk
 (e.g. if a person sprints toward a crosswalk, stops abruptly then they have a higher probability of continuing across)
-
 # Set up environment:
 - Let's all use uv for packages and environment (make sure you have uv installed)
 - Set up a uv venv in ur local repo
@@ -18,7 +17,8 @@ The predicted movement is based mainly off of approach velocity to the crosswalk
 - Main.py will contain the app itself as well as entrypoint, so either web or locally running using openCV
 - Infer.py will most likely run some YOLO model for image classification and bounding boxes
 - Predictor.py will run the NN for movement prediction. Draws arrows for predicted direction, etc...
-- gen_data.py creates synthetic data for trianing predictor.py 
+- gen_data.py creates synthetic data for training predictor.py 
 
 # Naming ideas:
 - Rush detector
+
