@@ -1,3 +1,4 @@
 torch==2.6.0
 ultralytics==8.3.109
 opencv-python==4.11.0.86
+fastapi==0.115.12
