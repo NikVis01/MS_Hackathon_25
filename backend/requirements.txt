@@ -2,3 +2,7 @@ torch==2.6.0
 ultralytics==8.3.109
 opencv-python==4.11.0.86
 fastapi==0.115.12
+uvicorn==0.27.1
+python-multipart==0.0.9
+pydantic==2.6.3
+Pillow==10.2.0
