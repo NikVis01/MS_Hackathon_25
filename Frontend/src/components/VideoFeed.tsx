@@ -1,4 +1,3 @@
-
 import {
   Select,
   SelectContent,
@@ -10,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Circle } from "lucide-react";
 import { FeedData } from "@/pages/Index";
+import CameraFeed from "@/components/CameraFeed";
 
 interface VideoFeedProps {
   feed: FeedData;
@@ -65,14 +65,11 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
 
       {/* Video display */}
       <div 
-        className="flex-1 video-feed"
-        style={{ 
-          backgroundImage: `url(${feed.url})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
+        className="flex-1 video-feed flex items-center justify-center bg-black"
+        style={{ minHeight: 300 }}
       >
-        <div className="p-3 bg-black/50 text-white text-sm w-fit">
+        <CameraFeed />
+        <div className="absolute top-0 left-0 p-3 bg-black/50 text-white text-sm w-fit">
           {feed.name}
         </div>
       </div>

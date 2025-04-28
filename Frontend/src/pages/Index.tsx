@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import YoloUploader from "@/components/YoloUploader";
+import CameraFeed from "@/components/CameraFeed";
 
 export interface FeedData {
   id: string;
@@ -195,6 +197,7 @@ const Index = () => {
 
       <ResizablePanel defaultSize={55} minSize={40}>
         <div className="flex-1 flex flex-col p-4 h-full">
+          <YoloUploader />
           <div className="relative flex-1 min-h-[300px]">
             {activeFeeds.length > 1 && (
               <>
