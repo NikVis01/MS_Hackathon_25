@@ -1,19 +1,18 @@
 ### Main app file
 
 import cv2
-import infer
-import predictor
+# import predictor
 import fastapi
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from infer import YOLODetector
+
 import uvicorn
 import threading
 import time
 import numpy as np
 from fastapi.responses import StreamingResponse
-import io
 
 app = FastAPI()
 
@@ -51,6 +50,7 @@ async def detect_objects(request: ImageRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/health")
 async def health_check():
     """
@@ -58,18 +58,21 @@ async def health_check():
     """
     return {"status": "healthy"}
 
+
 @app.get("/latest-detections")
 async def get_latest_detections():
     with latest_lock:
         return latest_detections
 
 def camera_motion_yolo_thread(motion_threshold=50000):
-    global latest_detections, video_frame
-    cap = cv2.VideoCapture(0)
+    global latest_detections, video_frame # used to be https whatever camera_feed_url
+    cap = cv2.VideoCapture(0) # hosturl inst of 0
+
     if not cap.isOpened():
         print("Cannot open camera")
         return
     prev_gray = None
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -81,9 +84,11 @@ def camera_motion_yolo_thread(motion_threshold=50000):
             diff = cv2.absdiff(prev_gray, gray)
             _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
             motion_score = cv2.countNonZero(thresh)
+
             if motion_score > motion_threshold:
                 results = yolo_detector.model(frame)
                 detections = []
+
                 for result in results:
                     boxes = result.boxes
                     for box in boxes:
@@ -101,17 +106,22 @@ def camera_motion_yolo_thread(motion_threshold=50000):
                         cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0,255,0), 2)
                         label = f"{class_name} {confidence:.2f}"
                         cv2.putText(annotated_frame, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
+
                 with latest_lock:
                     latest_detections = {"success": True, "detections": detections}
+
         prev_gray = gray
         # Always update the latest video frame
+
         with video_frame_lock:
             video_frame = annotated_frame.copy()
         time.sleep(0.05)  # ~20 FPS
     cap.release()
 
+
 def mjpeg_streamer():
     global video_frame
+
     while True:
         with video_frame_lock:
             frame = video_frame.copy() if video_frame is not None else None
