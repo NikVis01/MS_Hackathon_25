@@ -1,24 +1,34 @@
 ### 2025 SSE Business lab x Microsoft x KTH AI Society Hackathon
 
 ## Core idea:
-Predicts whether or not a person will jaywalk upon stopping at a crosswalk (entering the frame).
-Identifies 2 cases upon stopping at a crosswalk:
-1. Stop and wait for light to turn green
-2. Run across upon first stopping
+Cameras will stream livefeeds to a website that will sent warningsignals to the user if the cameras detect scertain movement/objects/objects moving in a scertain way according to a prompt by the user (in natural language) that will be fed into an ML. 
 
-The predicted movement is based mainly off of approach velocity to the crosswalk
-(e.g. if a person sprints toward a crosswalk, stops abruptly then they have a higher probability of continuing across)
 # Set up environment:
-- Let's all use uv for packages and environment (make sure you have uv installed)
-- Set up a uv venv in ur local repo
-- Install requirements.txt with uv (uv pip install...)
+- Make sure you have uv installed.
+- Set up a uv venv in ur local repo.
+- Install the modules in requirements.txt.
 
 # Preliminary code structure:
-- Main.py will contain the app itself as well as entrypoint, so either web or locally running using openCV
-- Infer.py will most likely run some YOLO model for image classification and bounding boxes
-- Predictor.py will run the NN for movement prediction. Draws arrows for predicted direction, etc...
-- gen_data.py creates synthetic data for training predictor.py 
 
-# Naming ideas:
-- Rush detector
+<div align="center">
+  <div class="mermaid">
+    graph TD
+      YOLO --> ML --> PYTHON
+      YOLO --> PYTHON
+      Cams --> PYTHON
+      PYTHON -- FastAPI --> JavaScript --> HTML
+      JavaScript --> cssTailwind[CSS & Tailwind]
+      JavaScript --> Cams
+      JavaScript --> prompts --> encode --> weightsbiases[weights & biases] --> vekdat[vector data]
+      weightsbiases --> output
+
+  </div>
+</div>
+
+## Important Steps
+
+1. Online platform with FIGMA
+2. Finish RB-track
+3. Connect input data, CAWS/Azure
+4. Meta SAM implementation
 
