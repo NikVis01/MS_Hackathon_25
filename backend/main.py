@@ -16,7 +16,7 @@ from fastapi.responses import StreamingResponse
 
 app = FastAPI()
 
-# Configure CORS
+### --- Middleware --- ###
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production, replace with your frontend URL
@@ -25,18 +25,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize YOLO detector
+#### --- Inits and global variables --- ###
 yolo_detector = YOLODetector()
 latest_detections = {"success": True, "detections": []}
 latest_lock = threading.Lock()
 
-# Global for video streaming
 video_frame_lock = threading.Lock()
 video_frame = None
 
 class ImageRequest(BaseModel):
     image_data: str
 
+
+#### --- YOLO inference --- ###
 @app.post("/detect")
 async def detect_objects(request: ImageRequest):
     """
@@ -59,59 +60,66 @@ async def health_check():
     return {"status": "healthy"}
 
 
+#### --- FastAPI endpoints --- ####
+"""
+Camera_motion_yolo_thread:
+    - Captures frames from the camera using cv2.VideoCapture(0)
+    - Runs continuous motion detection with Yolo v8
+    - Prcessed frame stored in video_frame global variable
+Frontend integration:
+    - /latest-detections: returns the latest detections
+    - /video_feed: returns the latest frame with bounding boxes overlayed
+
+    - So when client requests /video_feed, it gets the latest frame from video_frame with Yolo v8 bounding boxes overlayed
+
+Ideas for stuff to add:
+    - When streaming to cloud vm for YOLO, we only stream changes in the frame, keeping old frames and their detections in the frontend if no motion is detected
+    - Compress img frame files before sending to VM
+"""
 @app.get("/latest-detections")
 async def get_latest_detections():
     with latest_lock:
         return latest_detections
 
-def camera_motion_yolo_thread(motion_threshold=50000):
-    global latest_detections, video_frame # used to be https whatever camera_feed_url
-    cap = cv2.VideoCapture(0) # hosturl inst of 0
+def camera_motion_yolo_thread():
+    global latest_detections, video_frame
+    cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
         print("Cannot open camera")
         return
-    prev_gray = None
 
     while True:
         ret, frame = cap.read()
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+        # Run YOLO detection on every frame
+        results = yolo_detector.model(frame)
+        detections = []
         annotated_frame = frame.copy()
-        if prev_gray is not None:
-            diff = cv2.absdiff(prev_gray, gray)
-            _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
-            motion_score = cv2.countNonZero(thresh)
 
-            if motion_score > motion_threshold:
-                results = yolo_detector.model(frame)
-                detections = []
+        for result in results:
+            boxes = result.boxes
+            for box in boxes:
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                confidence = box.conf[0].item()
+                class_id = int(box.cls[0].item())
+                class_name = yolo_detector.model.names[class_id]
+                detections.append({
+                    "bbox": [x1, y1, x2, y2],
+                    "confidence": confidence,
+                    "class": class_name,
+                    "class_id": class_id
+                })
+                # Draw on annotated_frame
+                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0,255,0), 2)
+                label = f"{class_name} {confidence:.2f}"
+                cv2.putText(annotated_frame, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
 
-                for result in results:
-                    boxes = result.boxes
-                    for box in boxes:
-                        x1, y1, x2, y2 = map(int, box.xyxy[0])
-                        confidence = box.conf[0].item()
-                        class_id = int(box.cls[0].item())
-                        class_name = yolo_detector.model.names[class_id]
-                        detections.append({
-                            "bbox": [x1, y1, x2, y2],
-                            "confidence": confidence,
-                            "class": class_name,
-                            "class_id": class_id
-                        })
-                        # Draw on annotated_frame
-                        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0,255,0), 2)
-                        label = f"{class_name} {confidence:.2f}"
-                        cv2.putText(annotated_frame, label, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
-
-                with latest_lock:
-                    latest_detections = {"success": True, "detections": detections}
-
-        prev_gray = gray
-        # Always update the latest video frame
+        with latest_lock:
+            latest_detections = {"success": True, "detections": detections}
 
         with video_frame_lock:
             video_frame = annotated_frame.copy()
@@ -119,6 +127,7 @@ def camera_motion_yolo_thread(motion_threshold=50000):
     cap.release()
 
 
+#### --- Video streaming --- ###
 def mjpeg_streamer():
     global video_frame
 
