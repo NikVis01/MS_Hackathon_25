@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import {
-  
   Select,
   SelectContent,
   SelectItem,
@@ -17,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
 // API endpoint to which we'll send the prompt data
-const API_ENDPOINT = "http://192.168.242.99:5173/recieve"; // You can change this URL as needed
+const API_ENDPOINT = "https://api.example.com/prompts"; // You can change this URL as needed
 
 interface VideoFeedProps {
   feed: FeedData;
