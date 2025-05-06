@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { FeedData } from "@/pages/Index";
 import { Button } from "@/components/ui/button";
-import { Pencil, Link, Send } from "lucide-react";
+import { Pencil, Link } from "lucide-react";
 
 interface SidebarProps {
   feeds: FeedData[];
@@ -16,7 +16,13 @@ interface SidebarProps {
   onUpdateFeedUrl: (id: string, newUrl: string) => void;
 }
 
-const Sidebar = ({ feeds, activeFeeds, onToggleFeed, onUpdateFeedName, onUpdateFeedUrl }: SidebarProps) => {
+const Sidebar = ({ 
+  feeds, 
+  activeFeeds, 
+  onToggleFeed, 
+  onUpdateFeedName, 
+  onUpdateFeedUrl
+}: SidebarProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editingUrlId, setEditingUrlId] = useState<string | null>(null);
@@ -114,7 +120,7 @@ const Sidebar = ({ feeds, activeFeeds, onToggleFeed, onUpdateFeedName, onUpdateF
                       variant="outline"
                       onClick={() => handleSaveUrl(feed.id)}
                     >
-                      <Send size={16} />
+                      Save
                     </Button>
                   </div>
                 ) : (
