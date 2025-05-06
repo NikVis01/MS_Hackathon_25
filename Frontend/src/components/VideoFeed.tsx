@@ -1,4 +1,7 @@
+
+import { useState } from "react";
 import {
+  
   Select,
   SelectContent,
   SelectItem,
@@ -7,9 +10,14 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Circle } from "lucide-react";
+import { Send, AlertTriangle } from "lucide-react";
 import { FeedData } from "@/pages/Index";
-import CameraFeed from "@/components/CameraFeed";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
+
+// API endpoint to which we'll send the prompt data
+const API_ENDPOINT = "http://192.168.242.99:5173/recieve"; // You can change this URL as needed
 
 interface VideoFeedProps {
   feed: FeedData;
@@ -17,6 +25,10 @@ interface VideoFeedProps {
 }
 
 const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
+  const [promptInput, setPromptInput] = useState(feed.prompts?.[feed.detectionMode] || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  
   const detectionModes = [
     { id: "none", name: "None", prompt: false },
     { id: "object", name: "Object Detection", prompt: true },
@@ -49,6 +61,66 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
     return mode?.prompt || mode?.children?.find(child => child.id === feed.detectionMode)?.prompt;
   };
 
+  const handleModeChange = (value: string) => {
+    onChangeDetectionMode(feed.id, value);
+    // Reset prompt input when mode changes
+    setPromptInput(feed.prompts?.[value] || "");
+  };
+
+  const sendPromptData = async (prompt: string) => {
+    setIsSubmitting(true);
+    
+    try {
+      const payload = {
+        feedId: feed.id,
+        feedName: feed.name,
+        detectionMode: feed.detectionMode,
+        prompt: prompt,
+        timestamp: new Date().toISOString()
+      };
+
+      const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Show success toast message
+      toast({
+        title: "Prompt Sent",
+        description: `Successfully sent ${getCurrentModeName()} prompt for ${feed.name}.`,
+      });
+
+      // Also update the local state through the callback
+      onChangeDetectionMode(feed.id, feed.detectionMode, prompt);
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending prompt data:', error);
+      
+      // Show error toast message
+      toast({
+        title: "Error Sending Prompt",
+        description: `Failed to send prompt to server: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+      
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendPrompt = async () => {
+    await sendPromptData(promptInput);
+  };
+
   return (
     <Card className="flex flex-col h-full overflow-hidden">
       {/* Pagination indicator moved to top */}
@@ -63,22 +135,36 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
         ))}
       </div>
 
-      {/* Video display */}
-      <div 
-        className="flex-1 video-feed flex items-center justify-center bg-black"
-        style={{ minHeight: 300 }}
-      >
-        <CameraFeed />
-        <div className="absolute top-0 left-0 p-3 bg-black/50 text-white text-sm w-fit">
-          {feed.name}
-        </div>
+      {/* Camera feed display or error message when URL is empty */}
+      <div className="flex-1 relative">
+        {feed.url ? (
+          <>
+            <img 
+              src={feed.url}
+              alt={`${feed.name} camera feed`}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute top-0 left-0 p-3 bg-black/50 text-white text-sm w-fit">
+              {feed.name}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full p-6 bg-muted/20">
+            <Alert variant="destructive" className="max-w-md bg-destructive/10">
+              <AlertTriangle className="h-5 w-5 mr-2" />
+              <AlertDescription>
+                No camera URL provided. Please update the feed URL in the sidebar.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
       </div>
       
       {/* Controls */}
       <div className="p-3 bg-card flex items-center justify-between">
         <Select
           value={feed.detectionMode}
-          onValueChange={(value) => onChangeDetectionMode(feed.id, value)}
+          onValueChange={handleModeChange}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select mode" />
@@ -95,7 +181,7 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
                       <div className="flex items-center gap-2">
                         {child.name}
                         {feed.prompts?.[child.id] && (
-                          <Circle className="w-2 h-2 fill-green-500 stroke-none" />
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         )}
                       </div>
                     </SelectItem>
@@ -106,7 +192,7 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
                   <div className="flex items-center gap-2">
                     {mode.name}
                     {feed.prompts?.[mode.id] && (
-                      <Circle className="w-2 h-2 fill-green-500 stroke-none" />
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
                     )}
                   </div>
                 </SelectItem>
@@ -116,12 +202,28 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
         </Select>
 
         {shouldShowPrompt() && (
-          <Input
-            className="w-[200px]"
-            placeholder={`Enter ${getCurrentModeName().toLowerCase()} prompt...`}
-            value={feed.prompts?.[feed.detectionMode] || ''}
-            onChange={(e) => onChangeDetectionMode(feed.id, feed.detectionMode, e.target.value)}
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              className="w-[200px]"
+              placeholder={`Enter ${getCurrentModeName().toLowerCase()} prompt...`}
+              value={promptInput}
+              onChange={(e) => setPromptInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSendPrompt();
+                }
+              }}
+              disabled={isSubmitting}
+            />
+            <Button 
+              size="icon"
+              onClick={handleSendPrompt}
+              variant="secondary"
+              disabled={isSubmitting}
+            >
+              <Send size={16} />
+            </Button>
+          </div>
         )}
       </div>
     </Card>

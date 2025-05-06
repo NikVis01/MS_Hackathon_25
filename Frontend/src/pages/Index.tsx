@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+
+import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import VideoFeed from "@/components/VideoFeed";
 import Terminal from "@/components/Terminal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import YoloUploader from "@/components/YoloUploader";
-import CameraFeed from "@/components/CameraFeed";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface FeedData {
   id: string;
@@ -50,8 +50,20 @@ const Index = () => {
     addTerminalMessage("System initialized. Ready for detection.");
 
     const mockBackendUpdates = [
-      { id: "1", name: "Front Door", url: "/placeholder.svg", active: true, detectionMode: "none" },
-      { id: "2", name: "Back Yard", url: "/placeholder.svg", active: false, detectionMode: "none" },
+      { 
+        id: "1", 
+        name: "Front Door", 
+        url: "", // Empty URL initially
+        active: true, 
+        detectionMode: "none" 
+      },
+      { 
+        id: "2", 
+        name: "Back Yard", 
+        url: "", // Empty URL initially
+        active: false, 
+        detectionMode: "none" 
+      },
     ];
 
     mockBackendUpdates.forEach((feed, index) => {
@@ -61,15 +73,56 @@ const Index = () => {
     });
   }, []);
 
+  const validateUrl = (url: string): boolean => {
+    // Basic URL validation, but more permissive for internal network addresses
+    if (!url) return false;
+    
+    try {
+      // Try to create a URL object to validate basic URL structure
+      new URL(url);
+      return true;
+    } catch (e) {
+      // If URL parsing fails, check if it might be an IP without protocol
+      const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(:[0-9]+)?(\/[\w.\-~:/?#[\]@!$&'()*+,;=]*)?$/;
+      if (ipRegex.test(url)) {
+        // It looks like an IP without protocol, consider it valid
+        return true;
+      }
+      return false;
+    }
+  };
+
   const handleNewFeed = (newFeed: FeedData) => {
+    // Make sure URL has protocol if it's not empty
+    let processedUrl = newFeed.url;
+    
+    if (processedUrl) {
+      // Add http:// if it's missing and looks like an IP address
+      if (!processedUrl.startsWith('http://') && !processedUrl.startsWith('https://') && 
+          /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/.test(processedUrl)) {
+        processedUrl = `http://${processedUrl}`;
+        newFeed.url = processedUrl;
+      }
+      
+      // Basic URL validation before adding
+      if (!validateUrl(processedUrl)) {
+        addTerminalMessage(`Warning: Feed URL format for ${newFeed.name} may not be supported`);
+      }
+    }
+    
     setFeeds(prevFeeds => {
       const feedExists = prevFeeds.some(feed => feed.id === newFeed.id);
       if (!feedExists) {
         addTerminalMessage(`New camera feed connected: ${newFeed.name}`);
-        toast({
-          title: "New Camera Connected",
-          description: `${newFeed.name} has been added to available feeds.`,
-        });
+        
+        // Don't call toast during render, defer it
+        setTimeout(() => {
+          toast({
+            title: "New Camera Connected",
+            description: `${newFeed.name} has been added to available feeds.`,
+          });
+        }, 0);
+        
         return [...prevFeeds, newFeed];
       }
       return prevFeeds;
@@ -87,6 +140,42 @@ const Index = () => {
     addTerminalMessage(`Camera feed ${id} renamed to: ${newName}`);
   };
 
+  const updateFeedUrl = (id: string, newUrl: string) => {
+    // Make sure URL has protocol
+    let processedUrl = newUrl;
+    
+    // Add http:// if it's missing and looks like an IP address
+    if (!processedUrl.startsWith('http://') && !processedUrl.startsWith('https://') && 
+        /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/.test(processedUrl)) {
+      processedUrl = `http://${processedUrl}`;
+    }
+    
+    if (!validateUrl(processedUrl)) {
+      toast({
+        title: "Invalid URL format",
+        description: "Please enter a valid stream URL or IP address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setFeeds(prevFeeds =>
+      prevFeeds.map(feed =>
+        feed.id === id
+          ? { ...feed, url: processedUrl }
+          : feed
+      )
+    );
+    
+    const feedName = feeds.find(feed => feed.id === id)?.name || id;
+    addTerminalMessage(`Updated URL for ${feedName}: ${processedUrl}`);
+    
+    toast({
+      title: "Feed URL Updated",
+      description: `URL for ${feedName} has been updated.`,
+    });
+  };
+
   const addTerminalMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setTerminalOutput(prev => [...prev, `[${timestamp}] ${message}`]);
@@ -94,14 +183,6 @@ const Index = () => {
 
   const toggleFeed = (id: string) => {
     if (activeFeeds.includes(id)) {
-      if (activeFeeds.length === 1) {
-        toast({
-          title: "Cannot deactivate",
-          description: "At least one feed must be active",
-          variant: "destructive",
-        });
-        return;
-      }
       setActiveFeeds(prev => prev.filter(feedId => feedId !== id));
     } else {
       if (activeFeeds.length >= 5) {
@@ -138,17 +219,19 @@ const Index = () => {
       const feed = feeds.find(feed => feed.id === feedId);
       
       if (feed) {
-        if (prompt !== undefined) {
-          addTerminalMessage(`Updated ${modeId} prompt for ${feed.name}: ${prompt}`);
-        } else {
+        if (modeId !== feed.detectionMode) {
           addTerminalMessage(`Set detection mode for ${feed.name} to ${modeId}`);
         }
         
-        if (modeId !== 'none' && prompt) {
-          setTimeout(() => {
-            const detections = ["person (87%)", "backpack (63%)"];
-            addTerminalMessage(`Detection results for ${feed.name}: ${detections.join(", ")}`);
-          }, 2000);
+        if (prompt !== undefined) {
+          addTerminalMessage(`Updated ${modeId} prompt for ${feed.name}: ${prompt}`);
+          
+          if (modeId !== 'none') {
+            setTimeout(() => {
+              const detections = ["person (87%)", "backpack (63%)"];
+              addTerminalMessage(`Detection results for ${feed.name}: ${detections.join(", ")}`);
+            }, 2000);
+          }
         }
       }
     } catch (error) {
@@ -190,6 +273,7 @@ const Index = () => {
           activeFeeds={activeFeeds}
           onToggleFeed={toggleFeed}
           onUpdateFeedName={updateFeedName}
+          onUpdateFeedUrl={updateFeedUrl}
         />
       </ResizablePanel>
 
@@ -197,7 +281,6 @@ const Index = () => {
 
       <ResizablePanel defaultSize={55} minSize={40}>
         <div className="flex-1 flex flex-col p-4 h-full">
-          <YoloUploader />
           <div className="relative flex-1 min-h-[300px]">
             {activeFeeds.length > 1 && (
               <>
@@ -220,11 +303,30 @@ const Index = () => {
               </>
             )}
 
-            {enhancedDisplayedFeed && (
+            {enhancedDisplayedFeed ? (
               <VideoFeed 
                 feed={enhancedDisplayedFeed}
                 onChangeDetectionMode={changeDetectionMode}
               />
+            ) : (
+              <Card className="flex flex-col h-full items-center justify-center text-center p-6 bg-muted/20">
+                <Alert variant="destructive" className="max-w-md mb-4 bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 mr-2" />
+                  <AlertDescription>
+                    No active camera feeds available
+                  </AlertDescription>
+                </Alert>
+                <div className="mt-4 text-muted-foreground">
+                  <p>Activate a camera feed from the sidebar to view the stream</p>
+                  <div className="w-full h-48 mt-6 bg-muted rounded-md flex items-center justify-center">
+                    <img 
+                      src="https://images.unsplash.com/photo-1518770660439-4636190af475" 
+                      alt="No camera feed" 
+                      className="max-h-full max-w-full object-contain opacity-20"
+                    />
+                  </div>
+                </div>
+              </Card>
             )}
           </div>
         </div>
