@@ -1,9 +1,15 @@
 import cv2
 from flask import Flask, Response
 import threading
+import atexit
 
 app = Flask(__name__)
 camera = cv2.VideoCapture(0)
+
+def release_camera():
+    if camera.isOpened():
+        camera.release()
+atexit.register(release_camera)
 
 def generate_frames():
     while True:
@@ -24,4 +30,5 @@ def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, threaded=True)
+    # Run only locally; Nginx handles HTTPS externally
+    app.run(host="0.0.0.0", port=5173, threaded=True)
