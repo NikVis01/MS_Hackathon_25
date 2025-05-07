@@ -9,3 +9,7 @@ Pillow==10.2.0
 torchaudio==2.6.0
 numpy==1.24.3
 librosa==0.10.1
+requests==2.31.0
+soundfile==0.12.1
+urllib3<2.0.0
+sounddevice==0.4.6

@@ -1,0 +1,69 @@
+{
+    "sound_classes": [
+        {
+            "id": 0,
+            "name": "Speech",
+            "description": "Human speech and conversation",
+            "threshold": 0.5
+        },
+        {
+            "id": 1,
+            "name": "Music",
+            "description": "Musical instruments and songs",
+            "threshold": 0.5
+        },
+        {
+            "id": 2,
+            "name": "Noise",
+            "description": "Background noise and static",
+            "threshold": 0.6
+        },
+        {
+            "id": 3,
+            "name": "Animal",
+            "description": "Animal sounds and calls",
+            "threshold": 0.5
+        },
+        {
+            "id": 4,
+            "name": "Vehicle",
+            "description": "Vehicle engines and traffic",
+            "threshold": 0.5
+        },
+        {
+            "id": 5,
+            "name": "Human sounds",
+            "description": "Non-speech human sounds",
+            "threshold": 0.5
+        },
+        {
+            "id": 6,
+            "name": "Domestic sounds",
+            "description": "Household appliance sounds",
+            "threshold": 0.5
+        },
+        {
+            "id": 7,
+            "name": "Alarm",
+            "description": "Alarm and warning sounds",
+            "threshold": 0.4
+        },
+        {
+            "id": 8,
+            "name": "Bell",
+            "description": "Bell and chime sounds",
+            "threshold": 0.5
+        },
+        {
+            "id": 9,
+            "name": "Chime",
+            "description": "Musical chimes and tones",
+            "threshold": 0.5
+        }
+    ],
+    "model_config": {
+        "sample_rate": 32000,
+        "block_duration": 0.5,
+        "default_threshold": 0.5
+    }
+} 
