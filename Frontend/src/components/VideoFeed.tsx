@@ -15,8 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
-// API endpoint to which we'll send the prompt data
-const API_ENDPOINT = "https://api.example.com/prompts"; // You can change this URL as needed
+// Using the camera feed URL directly instead of a fixed API endpoint
+// The /prompt will be appended to the camera feed URL when sending data
 
 interface VideoFeedProps {
   feed: FeedData;
@@ -67,18 +67,30 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
   };
 
   const sendPromptData = async (prompt: string) => {
+    if (!feed.url) {
+      toast({
+        title: "Error Sending Prompt",
+        description: "No camera URL provided. Please update the feed URL in the sidebar.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     setIsSubmitting(true);
     
     try {
+      // Create the prompt endpoint by appending /prompt to the camera feed URL
+      const promptUrl = new URL('/prompt', feed.url).toString();
+      
       const payload = {
-        feedId: feed.id,
-        feedName: feed.name,
-        detectionMode: feed.detectionMode,
-        prompt: prompt,
-        timestamp: new Date().toISOString()
+        feed_id: feed.id,
+        detection_mode: feed.detectionMode,
+        prompt: prompt
       };
 
-      const response = await fetch(API_ENDPOINT, {
+      console.log(`Sending prompt data to ${promptUrl}:`, payload);
+
+      const response = await fetch(promptUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,6 +101,9 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      
+      const responseData = await response.json();
+      console.log("Response from server:", responseData);
 
       // Show success toast message
       toast({
