@@ -20,6 +20,7 @@ in local terminal:
 curl -o /dev/null -w '%{time_starttransfer}\n' http://172.160.224.28:8000/video_feed
 THIS IS THE MAIN ISSUE CURRENTLY, ITS KINDA SLOW THIS PART
 
+
 #### ChatGPT ideer för vad som blockar:
 # Bottlenecks and Fixes for High Latency in `/video_feed`
 
@@ -85,6 +86,31 @@ THIS IS THE MAIN ISSUE CURRENTLY, ITS KINDA SLOW THIS PART
 - **Monitor with `curl -w '%{time_starttransfer}'`**
   - Continuously test `/video_feed` for latency spikes.
   - Target: under `0.2` seconds for stream startup.
+
+
+# Multi-Protocol Streaming: Quick Bottlenecks & Fixes
+
+## 🚨 Bottlenecks
+
+- **CPU overload**: Multiple protocols = high encoding/decoding load.
+- **Socket bloat**: Slow clients fill buffers, stall upstream.
+- **Duplicate decoding**: Pulling same stream twice wastes CPU.
+- **Frame races**: Shared `video_frame` without locks = torn frames.
+- **Backpressure**: No frame drop = growing latency.
+
+## ✅ Fixes
+
+- 🔇 Disable unused protocols during debug.
+- 🧵 Use `Lock` or `Queue(maxsize=1)` for `video_frame`.
+- 🔁 Let MediaMTX ingest once; don’t decode twice.
+- 🧼 Throttle MJPEG (≤10fps), drop stale frames.
+- 📡 One protocol per stream path when possible.
+
+## 🛠 Tools
+
+- `netstat -tulpn` — active protocols
+- `htop` / `atop` — resource usage
+- `curl -w '%{time_starttransfer}'` — stream latency
 
 
 # Preliminary code structure:
