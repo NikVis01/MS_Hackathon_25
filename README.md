@@ -64,8 +64,27 @@ THIS IS THE MAIN ISSUE CURRENTLY, ITS KINDA SLOW THIS PART
   - Add `time.sleep(0.1)` (max 10 FPS) after each frame if needed.
   - Or use a `Queue(maxsize=1)` to drop old frames and push latest only.
 
+
 - **Use a single-item frame queue**
-  - Push the latest frame to a
+  - Push the latest frame to a `queue.Queue(maxsize=1)`:
+    - Drop stale frames automatically
+    - Keep stream live with freshest data
+
+- **Move JPEG encoding to a thread (optional enhancement)**
+  - Offload `cv2.imencode()` to a worker thread or separate process if throughput is still an issue.
+
+- **Use WebSocket for modern delivery**
+  - Replace MJPEG with WebSocket:
+    - Push base64-encoded JPEG + JSON bbox metadata
+    - Frontend renders with `<canvas>` or `<img>` as needed
+
+- **Deploy frontend close to backend**
+  - Avoid cross-region traffic (e.g., local React → Azure backend).
+  - Host the frontend on the same VM for development/testing.
+
+- **Monitor with `curl -w '%{time_starttransfer}'`**
+  - Continuously test `/video_feed` for latency spikes.
+  - Target: under `0.2` seconds for stream startup.
 
 
 # Preliminary code structure:
