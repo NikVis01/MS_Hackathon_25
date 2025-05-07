@@ -481,6 +481,10 @@ const Index = () => {
           onToggleFeed={toggleFeed}
           onUpdateFeedName={updateFeedName}
           onUpdateFeedUrl={updateFeedUrl}
+          onApiConnect={handleApiConnect}
+          onUpdateApiEndpoint={handleUpdateApiEndpoint}
+          isConnected={isConnected}
+          apiEndpoint={apiEndpoint}
         />
       </ResizablePanel>
 

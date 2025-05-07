@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -14,6 +13,7 @@ import { FeedData } from "@/pages/Index";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { Slider } from "@/components/ui/slider";
 
 // API endpoint to which we'll send the prompt data
 const API_ENDPOINT = "https://api.example.com/prompts"; // You can change this URL as needed
@@ -26,6 +26,14 @@ interface VideoFeedProps {
 const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
   const [promptInput, setPromptInput] = useState(feed.prompts?.[feed.detectionMode] || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fps, setFps] = useState(30);
+  const [fpsStatus, setFpsStatus] = useState<{
+    current_fps: number;
+    target_fps: number;
+    min_fps: number;
+    max_fps: number;
+    cpu_usage: number;
+  } | null>(null);
   const { toast } = useToast();
   
   const detectionModes = [
@@ -120,6 +128,58 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
     await sendPromptData(promptInput);
   };
 
+  // Add FPS status polling
+  useEffect(() => {
+    const pollFpsStatus = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/fps-status');
+        if (response.ok) {
+          const data = await response.json();
+          setFpsStatus(data);
+          setFps(data.target_fps);
+        }
+      } catch (error) {
+        console.error('Failed to fetch FPS status:', error);
+      }
+    };
+
+    const interval = setInterval(pollFpsStatus, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update FPS control function
+  const handleFpsChange = async (value: number[]) => {
+    const newFps = value[0];
+    try {
+      const response = await fetch('http://localhost:8000/set-fps', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ target_fps: newFps }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update FPS');
+      }
+      
+      const data = await response.json();
+      setFps(newFps);
+      toast({
+        title: "FPS Updated",
+        description: `Frame rate set to ${newFps} FPS`,
+      });
+    } catch (error) {
+      console.error('Error updating FPS:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update FPS",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card className="flex flex-col h-full overflow-hidden">
       {/* Pagination indicator moved to top */}
@@ -145,6 +205,27 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
             />
             <div className="absolute top-0 left-0 p-3 bg-black/50 text-white text-sm w-fit">
               {feed.name}
+            </div>
+            {/* FPS Controls */}
+            <div className="absolute bottom-4 left-4 right-4 bg-black/50 p-4 rounded-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col">
+                  <span className="text-white">FPS: {fps}</span>
+                  {fpsStatus && (
+                    <span className="text-xs text-gray-300">
+                      Current: {fpsStatus.current_fps.toFixed(1)} | CPU: {fpsStatus.cpu_usage}%
+                    </span>
+                  )}
+                </div>
+                <Slider
+                  value={[fps]}
+                  onValueChange={handleFpsChange}
+                  min={15}
+                  max={45}
+                  step={1}
+                  className="w-[200px]"
+                />
+              </div>
             </div>
           </>
         ) : (

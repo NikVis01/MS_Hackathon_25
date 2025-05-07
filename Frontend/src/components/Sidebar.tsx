@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +13,10 @@ interface SidebarProps {
   onToggleFeed: (id: string) => void;
   onUpdateFeedName: (id: string, newName: string) => void;
   onUpdateFeedUrl: (id: string, newUrl: string) => void;
+  onApiConnect: () => void;
+  onUpdateApiEndpoint: (url: string) => void;
+  isConnected: boolean;
+  apiEndpoint: string;
 }
 
 const Sidebar = ({ 
@@ -21,12 +24,18 @@ const Sidebar = ({
   activeFeeds, 
   onToggleFeed, 
   onUpdateFeedName, 
-  onUpdateFeedUrl
+  onUpdateFeedUrl,
+  onApiConnect,
+  onUpdateApiEndpoint,
+  isConnected,
+  apiEndpoint
 }: SidebarProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editingUrlId, setEditingUrlId] = useState<string | null>(null);
   const [editUrl, setEditUrl] = useState("");
+  const [editingApiEndpoint, setEditingApiEndpoint] = useState(false);
+  const [apiUrl, setApiUrl] = useState(apiEndpoint);
 
   const handleEditClick = (feed: FeedData) => {
     setEditingId(feed.id);
@@ -144,8 +153,62 @@ const Sidebar = ({
         ))}
       </div>
       
-      <div className="mt-6 text-sm text-muted-foreground">
-        <p>Active feeds: {activeFeeds.length}/5</p>
+      <div className="mt-6 space-y-4">
+        <div className="text-sm text-muted-foreground">
+          <p>Active feeds: {activeFeeds.length}/5</p>
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">API Connection</h3>
+          {editingApiEndpoint ? (
+            <div className="flex gap-2">
+              <Input
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                className="flex-1"
+                placeholder="Enter API endpoint"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    onUpdateApiEndpoint(apiUrl);
+                    setEditingApiEndpoint(false);
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onUpdateApiEndpoint(apiUrl);
+                  setEditingApiEndpoint(false);
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-muted-foreground truncate flex-1">
+                {apiEndpoint || "No API endpoint set"}
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditingApiEndpoint(true)}
+                className="p-1 h-auto"
+              >
+                <Link className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <Button
+            variant={isConnected ? "destructive" : "default"}
+            size="sm"
+            className="w-full"
+            onClick={onApiConnect}
+          >
+            {isConnected ? "Disconnect" : "Connect"}
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -31,4 +31,4 @@ def video_feed():
 
 if __name__ == "__main__":
     # Run only locally; Nginx handles HTTPS externally
-    app.run(host="0.0.0.0", port=5173, threaded=True)
+    app.run(host="127.0.0.1", port=5173, threaded=True)

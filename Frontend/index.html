@@ -15,12 +15,209 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f0f0;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .video-container {
+        position: relative;
+        margin-bottom: 20px;
+      }
+      #videoFeed {
+        width: 100%;
+        max-width: 800px;
+        border-radius: 4px;
+      }
+      .controls {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+      }
+      .fps-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .fps-control input {
+        width: 100px;
+      }
+      .fps-control button {
+        padding: 5px 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .fps-control button:hover {
+        background-color: #0056b3;
+      }
+      .status {
+        font-size: 14px;
+        color: #666;
+      }
+      .detection-info {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+      }
+      .error-message {
+        color: #dc3545;
+        padding: 10px;
+        margin: 10px 0;
+        background-color: #f8d7da;
+        border-radius: 4px;
+        display: none;
+      }
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+    </style>
   </head>
 
   <body>
+    <div class="container">
+      <h1>YOLO Object Detection</h1>
+      <div class="error-message" id="errorMessage"></div>
+      <div class="loading" id="loading">Loading video feed...</div>
+      <div class="video-container">
+        <img id="videoFeed" src="http://localhost:8000/video-feed" alt="Video Feed" 
+             onerror="handleVideoError()" onload="handleVideoLoad()">
+      </div>
+      <div class="controls">
+        <div class="fps-control">
+          <label for="fpsInput">Target FPS:</label>
+          <input type="number" id="fpsInput" min="15" max="30" value="20">
+          <button onclick="setFPS()">Set FPS</button>
+          <span class="status" id="fpsStatus"></span>
+        </div>
+        <div class="detection-info" id="detectionInfo">
+          No detections yet
+        </div>
+      </div>
+    </div>
+
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+
+    <script>
+      let lastUpdate = 0;
+      const updateInterval = 1000; // Update status every second
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      function showError(message) {
+        const errorElement = document.getElementById('errorMessage');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+      }
+
+      function hideError() {
+        const errorElement = document.getElementById('errorMessage');
+        errorElement.style.display = 'none';
+      }
+
+      function showLoading() {
+        document.getElementById('loading').style.display = 'block';
+      }
+
+      function hideLoading() {
+        document.getElementById('loading').style.display = 'none';
+      }
+
+      function handleVideoError() {
+        showError('Failed to load video feed. Please check if the server is running.');
+        hideLoading();
+      }
+
+      function handleVideoLoad() {
+        hideError();
+        hideLoading();
+        retryCount = 0;
+      }
+
+      function setFPS() {
+        const fpsInput = document.getElementById('fpsInput');
+        const fps = parseInt(fpsInput.value);
+        
+        if (isNaN(fps) || fps < 15 || fps > 30) {
+          showError('FPS must be between 15 and 30');
+          return;
+        }
+
+        fetch('http://localhost:8000/set-fps', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ target_fps: fps })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to set FPS');
+          }
+          return response.json();
+        })
+        .then(data => {
+          hideError();
+          updateStatus();
+        })
+        .catch(error => {
+          showError('Error setting FPS: ' + error.message);
+        });
+      }
+
+      function updateStatus() {
+        const now = Date.now();
+        if (now - lastUpdate < updateInterval) return;
+        lastUpdate = now;
+
+        fetch('http://localhost:8000/fps-status')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to get status');
+            }
+            return response.json();
+          })
+          .then(data => {
+            const statusElement = document.getElementById('fpsStatus');
+            statusElement.textContent = `Current FPS: ${data.current_fps.toFixed(1)} | CPU: ${data.cpu_usage}%`;
+            hideError();
+          })
+          .catch(error => {
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(updateStatus, 1000);
+            } else {
+              showError('Error getting status: ' + error.message);
+            }
+          });
+      }
+
+      // Initial load
+      showLoading();
+      
+      // Update status periodically
+      setInterval(updateStatus, updateInterval);
+    </script>
   </body>
 </html>
