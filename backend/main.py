@@ -83,7 +83,7 @@ async def get_latest_detections():
 
 def camera_motion_yolo_thread():
     global latest_detections, video_frame
-    cap = cv2.VideoCapture("http://130.229.163.0:5173/video_feed")
+    cap = cv2.VideoCapture("rtsp://172.160.224.28:8554/mystream")
 
     if not cap.isOpened():
         print("Cannot open camera")
