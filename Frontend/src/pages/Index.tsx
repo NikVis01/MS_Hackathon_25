@@ -1,11 +1,11 @@
+
 // Updated index.tsx using native WebSocket (no socket.io)
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import VideoFeed from "@/components/VideoFeed";
 import Terminal from "@/components/Terminal";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -31,7 +31,7 @@ const Index = () => {
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:1234"); {/* ÄNDRA WEBSOCKET SERVER HÄR!!!!!!!!! */}
+    const socket = new WebSocket("ws://localhost:1234");  // HÄR ÄNDRA WEBSOCKET SERVER IP
     socketRef.current = socket;
 
     socket.onopen = () => {
@@ -57,6 +57,41 @@ const Index = () => {
       socket.close();
     };
   }, []);
+
+  const handleChangeDetectionMode = (feedId: string, modeId: string, prompt?: string) => {
+    setFeeds(prev => prev.map(feed => {
+      if (feed.id === feedId) {
+        const updatedPrompts = {
+          ...(feed.prompts || {}),
+        };
+        
+        if (prompt) {
+          updatedPrompts[modeId] = prompt;
+        }
+
+        return {
+          ...feed,
+          detectionMode: modeId,
+          prompts: updatedPrompts
+        };
+      }
+      return feed;
+    }));
+
+    addTerminalMessage(`Detection mode for feed ${feedId} changed to ${modeId}${prompt ? ' with prompt' : ''}`);
+    
+    if (prompt) {
+      toast({
+        title: "Detection Mode Updated",
+        description: `Changed to ${modeId} with new prompt`,
+      });
+    } else {
+      toast({
+        title: "Detection Mode Updated",
+        description: `Changed to ${modeId}`,
+      });
+    }
+  };
 
   const handleDetectionNotification = (data: any) => {
     const { event, timestamp, feedId, videoUrl } = data;
@@ -89,14 +124,16 @@ const Index = () => {
         name: "Front Door",
         url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
         active: true,
-        detectionMode: "none"
+        detectionMode: "none",
+        prompts: {}
       },
       {
         id: "2",
         name: "Back Yard",
         url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
         active: false,
-        detectionMode: "none"
+        detectionMode: "none",
+        prompts: {}
       },
     ]);
     setActiveFeeds(["1"]);
@@ -130,7 +167,10 @@ const Index = () => {
         <div className="flex-1 flex flex-col p-4 h-full">
           <div className="relative flex-1 min-h-[300px]">
             {displayedFeed ? (
-              <VideoFeed feed={{ ...displayedFeed, totalFeeds: activeFeeds.length, feedIndex: currentFeedIndex }} onChangeDetectionMode={() => {}} />
+              <VideoFeed 
+                feed={{ ...displayedFeed, totalFeeds: activeFeeds.length, feedIndex: currentFeedIndex }} 
+                onChangeDetectionMode={handleChangeDetectionMode} 
+              />
             ) : (
               <Card className="flex flex-col h-full items-center justify-center text-center p-6 bg-muted/20">
                 <Alert variant="destructive" className="max-w-md mb-4 bg-destructive/10">
