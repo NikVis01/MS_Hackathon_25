@@ -13,3 +13,4 @@ requests==2.31.0
 soundfile==0.12.1
 urllib3<2.0.0
 sounddevice==0.4.6
+websockets==15.0.1
