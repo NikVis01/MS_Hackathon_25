@@ -20,6 +20,52 @@ in local terminal:
 curl -o /dev/null -w '%{time_starttransfer}\n' http://172.160.224.28:8000/video_feed
 THIS IS THE MAIN ISSUE CURRENTLY, ITS KINDA SLOW THIS PART
 
+#### ChatGPT ideer för vad som blockar:
+# Bottlenecks and Fixes for High Latency in `/video_feed`
+
+## 🧨 Bottlenecks
+
+- **MJPEG viewed in browser**
+  - Browsers don’t natively support `multipart/x-mixed-replace` streams well.
+  - Results in scrambled or garbled image output.
+
+- **No frame drop mechanism**
+  - The `video_frame` is copied and sent even if the client can’t keep up.
+  - Leads to backpressure and growing latency in the HTTP stream.
+
+- **Fixed frame rate with `time.sleep(0.05)`**
+  - Forces ~20 FPS streaming even when the client can’t consume that fast.
+  - Unnecessary waiting causes lag buildup.
+
+- **Synchronous JPEG encoding**
+  - `cv2.imencode()` runs inside the generator and blocks the stream.
+  - Each frame takes time to encode, slowing down delivery.
+
+- **No adaptive buffering**
+  - There’s no queue or mechanism to manage fast frame production and slow consumption.
+  - Causes either dropped frames or stream stalls depending on load.
+
+- **Streaming over distant network (Azure VM → local machine)**
+  - High round-trip time exacerbates the issues above.
+  - Polling or naive streaming becomes visibly sluggish.
+
+---
+
+## ✅ Fixes
+
+- **Use a proper MJPEG viewer**
+  - Use `ffplay`, `VLC`, or `<img src="...">` in HTML for MJPEG streams instead of pasting the URL into the browser address bar.
+
+- **Remove fixed frame rate sleep**
+  - Only sleep if `video_frame` is `None`, not every iteration.
+  - This improves responsiveness and avoids unnecessary delay.
+
+- **Throttle frame rate explicitly**
+  - Add `time.sleep(0.1)` (max 10 FPS) after each frame if needed.
+  - Or use a `Queue(maxsize=1)` to drop old frames and push latest only.
+
+- **Use a single-item frame queue**
+  - Push the latest frame to a
 
 
 # Preliminary code structure:
