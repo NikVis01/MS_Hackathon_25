@@ -18,6 +18,9 @@ import psutil
 import logging
 import queue
 import multiprocessing
+import requests
+from datetime import datetime
+from collections import defaultdict
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -102,6 +105,10 @@ video_frame = None
 overlay_frame = None
 overlay_lock = threading.Lock()
 
+detection_history = defaultdict(float)
+DETECTION_COOLDOWN = 5
+WEBHOOK_URL = "http://majsssss.com/clip.mp4"
+
 class ImageRequest(BaseModel):
     image_data: str
 
@@ -140,25 +147,44 @@ def process_frame_for_detection(frame):
 
         detections = []
         overlay = frame.copy()
-        
+
         for result in results:
             for box in result.boxes:
                 x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
                 confidence = float(box.conf[0])
                 class_id = int(box.cls[0])
                 class_name = yolo_detector.class_names[class_id]
-                
+
                 detections.append({
                     "bbox": [x1, y1, x2, y2],
                     "confidence": confidence,
                     "class": class_name,
                     "class_id": class_id
                 })
-                
-                # Draw on overlay
+
                 cv2.rectangle(overlay, (x1, y1), (x2, y2), (0,255,0), 2)
                 cv2.putText(overlay, f"{class_name} {confidence:.2f}", (x1, y1 - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
+
+                detection_key = class_name.lower()
+                now = time.time()
+                last_sent = detection_history[detection_key]
+
+                if now - last_sent > DETECTION_COOLDOWN:
+                    payload = {
+                        "event": f"{class_name} detected",
+                        "timestamp": datetime.now().isoformat(),
+                        "feedId": "1",
+                        "videoUrl": WEBHOOK_URL
+                    }
+                    try:
+                        requests.post(WEBHOOK_URL, json=payload, timeout=2)
+                        detection_history[detection_key] = now
+                        logger.info(f"Webhook sent for {detection_key}")
+                    except Exception as e:
+                        logger.error(f"Webhook error for {detection_key}: {e}")
+                else:
+                    logger.debug(f"Cooldown active for {detection_key}, skipping webhook")
 
         with latest_lock:
             global latest_detections
@@ -172,6 +198,7 @@ def process_frame_for_detection(frame):
     except Exception as e:
         logger.error(f"process_frame error: {e}")
         return None
+
 
 def mjpeg_streamer():
     while True:
@@ -272,11 +299,16 @@ def start_camera_thread():
 
 """Lägger till detta för payloaden från frontend för prompt 
 och detection mode. Detection mode används inte fullt just nu."""
-@app.post("/prompt")
-async def set_detection_prompt(data: dict = Body(...)):
-    feed_id = data.get("feed_id")
-    detection_mode = data.get("detection_mode")
-    prompt = data.get("prompt")
+class Payload(BaseModel):
+    feed_id: str
+    detection_mode: str
+    prompt: str
+    
+@app.post("/recieve")
+async def receive_json(payload: Payload):
+    feed_id = payload.feed_id
+    detection_mode = payload.detection_mode
+    prompt = payload.prompt
 
     print(f"Feed ID: {feed_id}")
     print(f"Detection Mode: {detection_mode}")
@@ -309,7 +341,7 @@ async def set_detection_prompt(data: dict = Body(...)):
 
     return {
         "status": "ok",
-        "target_classes": getattr(yolo_detector, 'target_classes', None),
+        "target_classes": "ajajajajja",
         "detection_mode": detection_mode
     }
 
