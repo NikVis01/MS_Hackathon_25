@@ -39,7 +39,7 @@ async def broadcast_to_clients(data):
 
 # Kör FastAPI på en egen tråd
 def run_http_api():
-    uvicorn.run(app, host="0.0.0.0", port=8000) #var man ska skicka json paket!!!!!!!!!!!!!!!!!!!!!!
+    uvicorn.run(app, host="0.0.0.0", port=7000) #var man ska skicka json paket!!!!!!!!!!!!!!!!!!!!!!
 
 # Kör WebSocket-servern separat på port 8765
 async def start_websocket_server():
