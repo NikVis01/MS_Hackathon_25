@@ -35,4 +35,4 @@ def video_feed():
 
 if __name__ == "__main__":
     # Equivalent to Flask's app.run(host="0.0.0.0", port=8000)
-    uvicorn.run("video_proxy:app", host="0.0.0.0", port=8000)
+    uvicorn.run("video_proxy:app", host="0.0.0.0", port=6969)
