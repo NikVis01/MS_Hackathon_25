@@ -239,7 +239,7 @@ def camera_thread():
             logger.warning("Camera read failed, retrying...")
             cap.release()
             time.sleep(1)
-            cap = cv2.VideoCapture(index)
+            cap = cv2.VideoCapture(stream)
             continue
 
         with video_frame_lock:
