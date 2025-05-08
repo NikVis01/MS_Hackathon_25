@@ -272,4 +272,4 @@ def start_camera_thread():
 
 if __name__ == "__main__":
     print(f"\nStarting FastAPI server with {NUM_THREADS} threads ({NUM_THREADS/TOTAL_CORES*100:.1f}%)")
-    uvicorn.run(app, host="127.0.0.1", port=4200)
+    uvicorn.run(app, host="0.0.0.0", port=4200)
