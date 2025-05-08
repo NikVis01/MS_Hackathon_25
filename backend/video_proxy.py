@@ -6,7 +6,7 @@ import uvicorn
 
 app = FastAPI()
 
-RTSP_URL = "rtsp://172.160.225.181:8554/live/mystream/cam0?rtsptransport=tcp"
+RTSP_URL = "rtsp://172.160.225.181:8554/live/mystream/cam0"
 
 def connect_camera():
     """Try to open the RTSP stream with retries."""
