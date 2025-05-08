@@ -27,7 +27,7 @@ app = FastAPI()
 
 # CPU Threads
 TOTAL_CORES = multiprocessing.cpu_count()
-NUM_THREADS = max(1, int(TOTAL_CORES * 0.1))
+NUM_THREADS = max(1, int(TOTAL_CORES * 0.75))
 logger.info(f"Using {NUM_THREADS} threads out of {TOTAL_CORES} total cores")
 thread_pool = ThreadPoolExecutor(max_workers=NUM_THREADS)
 
