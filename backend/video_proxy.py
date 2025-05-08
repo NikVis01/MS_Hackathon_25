@@ -1,25 +1,33 @@
 import cv2
-import atexit
+import time
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 import uvicorn
 
 app = FastAPI()
 
-# Connect to MediaMTX RTSP stream
-camera = cv2.VideoCapture("rtsp://localhost:8554/live/mystream?rtsptransport=tcp")
-print("[INFO] camera opened:", camera.isOpened())
+RTSP_URL = "rtsp://172.160.225.181:8554/live/mystream/cam0?rtsptransport=tcp"
 
-def release_camera():
-    if camera.isOpened():
-        camera.release()
-
-atexit.register(release_camera)
+def connect_camera():
+    """Try to open the RTSP stream with retries."""
+    while True:
+        cap = cv2.VideoCapture(RTSP_URL)
+        if cap.isOpened():
+            print("[INFO] Connected to RTSP stream.")
+            return cap
+        print("[WARN] Failed to open RTSP stream. Retrying in 3s...")
+        cap.release()
+        time.sleep(3)
 
 def generate_mjpeg():
+    cap = connect_camera()
+
     while True:
-        success, frame = camera.read()
+        success, frame = cap.read()
         if not success:
+            print("[WARN] Frame read failed. Reconnecting...")
+            cap.release()
+            cap = connect_camera()
             continue
 
         ret, buffer = cv2.imencode('.jpg', frame)
@@ -35,5 +43,4 @@ def video_feed():
     return StreamingResponse(generate_mjpeg(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 if __name__ == "__main__":
-    # Equivalent to Flask's app.run(host="0.0.0.0", port=8000)
     uvicorn.run("video_proxy:app", host="0.0.0.0", port=6969)
