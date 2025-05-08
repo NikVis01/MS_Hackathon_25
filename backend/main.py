@@ -204,10 +204,10 @@ def mjpeg_streamer():
             logger.error(f"Stream error: {e}")
 
 def camera_thread():
-    stream = "rtsp://localhost:6969/video_feed"
+    stream = "http://localhost:6969/video_feed"
     cap = cv2.VideoCapture(stream)
     if cap.isOpened():
-        logger.info(f"Camera opened on index {stream}")
+        logger.info(f"Camera opened on {stream}")
 
     cap.release()
 

@@ -81,7 +81,7 @@ class YOLODetector:
 
     def detect_from_camera(self):
         import cv2
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture("http://localhost:6969/video_feed")
         if not cap.isOpened():
             print("Cannot open camera")
             return
