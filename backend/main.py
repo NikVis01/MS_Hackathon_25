@@ -274,8 +274,13 @@ def start_camera_thread():
 och detection mode. Detection mode används inte fullt just nu."""
 @app.post("/prompt")
 async def set_detection_prompt(data: dict = Body(...)):
+    feed_id = data.get("feed_id")
+    detection_mode = data.get("detection_mode")
     prompt = data.get("prompt")
-    detection_mode = data.get("detection_mode", "").strip().lower().replace(" ", "_")
+
+    print(f"Feed ID: {feed_id}")
+    print(f"Detection Mode: {detection_mode}")
+    print(f"Prompt: {prompt}")
 
     if detection_mode == "object_detection":
         # Use prompt to set YOLO classes

@@ -81,7 +81,7 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
     try {
       // Create the prompt endpo
       // int by appending /prompt to the camera feed URL
-      const promptUrl = new URL('/prompt', feed.url).toString();
+      const promptUrl = new URL('/prompt', "http://172.160.224.28:4200").toString();
       
       const payload = {
         feed_id: feed.id,
