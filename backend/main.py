@@ -1,7 +1,7 @@
 # main.py
 
 import cv2
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import StreamingResponse
@@ -269,6 +269,44 @@ async def video_feed():
 def start_camera_thread():
     threading.Thread(target=camera_thread, daemon=True).start()
     logger.info("Camera thread started")
+
+"""Lägger till detta för payloaden från frontend för prompt 
+och detection mode. Detection mode används inte fullt just nu."""
+@app.post("/prompt")
+async def set_detection_prompt(data: dict = Body(...)):
+    prompt = data.get("prompt")
+    detection_mode = data.get("detection_mode", "").strip().lower().replace(" ", "_")
+
+    if detection_mode == "object_detection":
+        # Use prompt to set YOLO classes
+        if prompt:
+            class_list = [cls.strip() for cls in prompt.split(",") if cls.strip()]
+            yolo_detector.set_target_classes(class_list)
+            logger.info(f"Set YOLO target classes to: {class_list}")
+        else:
+            yolo_detector.set_target_classes(None)
+            logger.info("Reset YOLO to detect all classes")
+    elif detection_mode == "motion_detection":
+        yolo_detector.set_target_classes(None)
+        logger.info("Detection mode: motion (no class filtering)")
+        # (Set a flag for motion detection logic if needed)
+    elif detection_mode == "motion-detection":
+        # Use both prompt and motion logic
+        if prompt:
+            class_list = [cls.strip() for cls in prompt.split(",") if cls.strip()]
+            yolo_detector.set_target_classes(class_list)
+            logger.info(f"Set YOLO target classes to: {class_list} (object-motion mode)")
+        else:
+            yolo_detector.set_target_classes(None)
+            logger.info("Object-motion mode, but no prompt provided")
+        # (Set a flag for object-motion logic)
+    # ... handle other modes as needed
+
+    return {
+        "status": "ok",
+        "target_classes": getattr(yolo_detector, 'target_classes', None),
+        "detection_mode": detection_mode
+    }
 
 if __name__ == "__main__":
     print(f"\nStarting FastAPI server with {NUM_THREADS} threads ({NUM_THREADS/TOTAL_CORES*100:.1f}%)")

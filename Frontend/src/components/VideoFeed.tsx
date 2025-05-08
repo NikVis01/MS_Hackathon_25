@@ -79,7 +79,8 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
     setIsSubmitting(true);
     
     try {
-      // Create the prompt endpoint by appending /prompt to the camera feed URL
+      // Create the prompt endpo
+      // int by appending /prompt to the camera feed URL
       const promptUrl = new URL('/prompt', feed.url).toString();
       
       const payload = {
@@ -154,7 +155,7 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
         {feed.url ? (
           <>
             <img 
-              src={feed.url}
+              src={feed.url + "/video_feed"}
               alt={`${feed.name} camera feed`}
               className="w-full h-full object-cover"
             />

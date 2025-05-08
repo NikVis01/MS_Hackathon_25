@@ -31,7 +31,7 @@ const Index = () => {
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:1234");  // HÄR ÄNDRA WEBSOCKET SERVER IP
+    const socket = new WebSocket("ws://172.160.224.28:1234");  // HÄR ÄNDRA WEBSOCKET SERVER IP
     socketRef.current = socket;
 
     socket.onopen = () => {
