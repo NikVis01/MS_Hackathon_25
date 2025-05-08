@@ -54,3 +54,9 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local 
+
+# MediaMTX
+mediamtx
+mediamtx.yml
+mediamtx_v1.12.2_linux_amd64.tar.gz
+LICENSE
