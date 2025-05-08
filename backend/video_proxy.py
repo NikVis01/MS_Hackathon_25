@@ -7,7 +7,8 @@ import uvicorn
 app = FastAPI()
 
 # Connect to MediaMTX RTSP stream
-camera = cv2.VideoCapture("rtsp://localhost:8554/live/mystream")
+camera = cv2.VideoCapture("rtsp://localhost:8554/live/mystream?rtsptransport=tcp")
+print("[INFO] camera opened:", camera.isOpened())
 
 def release_camera():
     if camera.isOpened():
