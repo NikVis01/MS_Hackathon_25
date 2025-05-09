@@ -1,4 +1,3 @@
-
 // Updated index.tsx using native WebSocket (no socket.io)
 import { useState, useEffect, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
@@ -121,7 +120,7 @@ const Index = () => {
     setFeeds([
       {
         id: "1",
-        name: "Front Door",
+        name: "Feed 1",
         url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
         active: true,
         detectionMode: "none",
@@ -129,12 +128,28 @@ const Index = () => {
       },
       {
         id: "2",
-        name: "Back Yard",
+        name: "Feed 2",
         url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
         active: false,
         detectionMode: "none",
         prompts: {}
       },
+      {
+        id: "3",
+        name: "Feed 3",
+        url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        active: false,
+        detectionMode: "none",
+        prompts: {}
+      },
+      {
+        id: "4",
+        name: "Feed 4",
+        url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        active: false,
+        detectionMode: "none",
+        prompts: {}
+      }
     ]);
     setActiveFeeds(["1"]);
   }, []);
