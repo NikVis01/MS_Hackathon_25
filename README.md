@@ -1,5 +1,3 @@
-libcamera-vid -t 0 --width 640 --height 480 --framerate 25 --codec h264 --profile baseline --inline -o - | ffmpeg -re -i - -c copy -f flv rtmp://<VM-IP>:1935/live/mystream
-
 ### 2025 SSE Business lab x Microsoft x KTH AI Society Hackathon
 
 ## Core idea:
@@ -38,11 +36,3 @@ THIS IS THE MAIN ISSUE CURRENTLY, ITS KINDA SLOW THIS PART
 
   </div>
 </div>
-
-## Important Steps
-
-1. Online platform with FIGMA
-2. Finish RB-track
-3. Connect input data, CAWS/Azure
-4. Meta SAM implementation
-
