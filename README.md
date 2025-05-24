@@ -1,9 +1,11 @@
 ### 2025 SSE Business lab x Microsoft x KTH AI Society Hackathon
 
-## Core idea:
-Cameras will stream livefeeds to a website that will sent warning signals to the user if the cameras detect scertain movement/objects/objects moving in a scertain way according to a prompt by the user (in natural language) that will be fed into the backend.
+## Core idea & Functionality:
+Cameras will stream live feeds to a website that will send warning signals to the user if the cameras detect the elements of a prompt fed in by the user.
 
-# SEtting up stream from ubuntu (might be diff for debian):
+![image](https://github.com/user-attachments/assets/a0eef878-031f-4fc7-a067-e872b65041c6)
+
+# Setting up stream from ubuntu (might be diff for debian):
 1. make sure mediaMTX is downloaded on streamer platform (VM already set up to listen to mediaMTX streams)
 2. ping VM with ping <vm-public-ip> this is realistically what mediaMTX is working with (will be slower)
 3. Stream to VM thru RTMP:
