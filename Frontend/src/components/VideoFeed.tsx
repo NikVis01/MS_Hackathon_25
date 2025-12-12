@@ -16,7 +16,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
 // API endpoint to which we'll send the prompt data
-const API_ENDPOINT = "https://api.example.com/prompts"; // You can change this URL as needed
+// Points to sound_AI.py endpoint for generating YAMNet categories
+const API_ENDPOINT = "http://localhost:8000/recieve"; // Backend endpoint for prompt processing
 
 interface VideoFeedProps {
   feed: FeedData;
@@ -70,12 +71,11 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
     setIsSubmitting(true);
     
     try {
+      // Format payload to match sound_AI.py endpoint (snake_case)
       const payload = {
-        feedId: feed.id,
-        feedName: feed.name,
-        detectionMode: feed.detectionMode,
-        prompt: prompt,
-        timestamp: new Date().toISOString()
+        feed_id: feed.id,
+        detection_mode: feed.detectionMode,
+        prompt: prompt
       };
 
       const response = await fetch(API_ENDPOINT, {
@@ -90,10 +90,24 @@ const VideoFeed = ({ feed, onChangeDetectionMode }: VideoFeedProps) => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
-      // Show success toast message
+      const result = await response.json();
+      
+      // Enable audio detection automatically when prompt is sent
+      try {
+        await fetch("http://localhost:8000/audio-detection/enable", {
+          method: 'POST',
+        });
+      } catch (e) {
+        console.warn("Could not enable audio detection:", e);
+      }
+
+      // Show success toast with generated categories
+      const categories = result.ai_response?.yamnet_categories || [];
       toast({
         title: "Prompt Sent",
-        description: `Successfully sent ${getCurrentModeName()} prompt for ${feed.name}.`,
+        description: categories.length > 0 
+          ? `YAMNet categories: ${categories.join(', ')}`
+          : `Successfully sent ${getCurrentModeName()} prompt`,
       });
 
       // Also update the local state through the callback

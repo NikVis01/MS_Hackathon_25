@@ -11,6 +11,14 @@ from urllib.parse import urlparse
 import os
 from torch import nn
 
+# Optional YAMNet import
+try:
+    from yamnet_detector import YAMNetDetector
+    YAMNET_AVAILABLE = True
+except ImportError:
+    YAMNET_AVAILABLE = False
+    YAMNetDetector = None
+
 class AudioCNN(nn.Module):
     def __init__(self, num_classes=10):
         super(AudioCNN, self).__init__()
@@ -61,18 +69,30 @@ class AudioCNN(nn.Module):
         return x
 
 class SoundDetector:
-    def __init__(self, config_path: str = "sound_classes.json", model_path: str = None, vm_url: str = None):
+    def __init__(self, config_path: str = "sound_classes.json", model_path: str = None, vm_url: str = None, use_yamnet: bool = False, yamnet_categories_path: str = "yamnet_categories.json"):
         """
-        Initialize the sound detector with an audio CNN model.
+        Initialize the sound detector with an audio CNN model or YAMNet.
         Args:
-            config_path: Path to the JSON configuration file
-            model_path: Path to the pretrained model weights (optional)
+            config_path: Path to the JSON configuration file (for AudioCNN)
+            model_path: Path to the pretrained model weights (optional, for AudioCNN)
             vm_url: Base URL of the virtual machine hosting the audio stream
+            use_yamnet: If True, use YAMNet instead of AudioCNN
+            yamnet_categories_path: Path to YAMNet categories JSON file
         """
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.config = self._load_config(config_path)
-        self.sample_rate = self.config['model_config']['sample_rate']
-        self.model = self._load_model(model_path)
+        self.use_yamnet = use_yamnet and YAMNET_AVAILABLE
+        
+        if self.use_yamnet:
+            print("Using YAMNet for audio classification")
+            self.yamnet_detector = YAMNetDetector(yamnet_categories_path=yamnet_categories_path)
+            self.sample_rate = 16000  # YAMNet uses 16kHz
+        else:
+            if use_yamnet and not YAMNET_AVAILABLE:
+                print("Warning: YAMNet requested but not available. Falling back to AudioCNN.")
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self.config = self._load_config(config_path)
+            self.sample_rate = self.config['model_config']['sample_rate']
+            self.model = self._load_model(model_path)
+        
         self.vm_url = vm_url.rstrip('/') if vm_url else None
         
     def _load_config(self, config_path: str) -> Dict:
@@ -186,6 +206,22 @@ class SoundDetector:
         Returns:
             List of detected sounds with their probabilities
         """
+        if self.use_yamnet:
+            # Use YAMNet
+            threshold = threshold or 0.3
+            yamnet_results = self.yamnet_detector.detect_sounds(audio_source, threshold=threshold)
+            # Convert to consistent format
+            return [
+                {
+                    'class': r['class'],
+                    'description': r['class'],  # YAMNet doesn't have descriptions
+                    'probability': r['probability'],
+                    'threshold': threshold
+                }
+                for r in yamnet_results
+            ]
+        
+        # Use AudioCNN (original implementation)
         # Preprocess audio
         waveform = self.preprocess_audio(audio_source)
         
@@ -227,6 +263,28 @@ class SoundDetector:
         Returns:
             List of detected sounds with their probabilities
         """
+        if self.use_yamnet:
+            # Use YAMNet
+            threshold = threshold or 0.3
+            # YAMNet expects 16kHz, so if audio_stream is already resampled, pass input_sr=16000
+            # Otherwise, let YAMNet handle resampling by not specifying input_sr
+            yamnet_results = self.yamnet_detector.detect_sounds_from_stream(
+                audio_stream, 
+                threshold=threshold,
+                input_sr=self.sample_rate if self.sample_rate == 16000 else None
+            )
+            # Convert to consistent format
+            return [
+                {
+                    'class': r['class'],
+                    'description': r['class'],
+                    'probability': r['probability'],
+                    'threshold': threshold
+                }
+                for r in yamnet_results
+            ]
+        
+        # Use AudioCNN (original implementation)
         # Convert to tensor
         waveform = torch.from_numpy(audio_stream).float()
         waveform = waveform.unsqueeze(0)

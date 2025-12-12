@@ -13,3 +13,5 @@ requests==2.31.0
 soundfile==0.12.1
 urllib3<2.0.0
 sounddevice==0.4.6
+tensorflow>=2.13.0
+tensorflow-hub>=0.15.0

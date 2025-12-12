@@ -59,17 +59,33 @@ const Index = () => {
   }, []);
 
   const handleDetectionNotification = (data: any) => {
-    const { event, timestamp, feedId, videoUrl } = data;
+    const { event, timestamp, feedId, videoUrl, probability, type } = data;
     const feedName = feeds.find(f => f.id === feedId)?.name || `Feed ${feedId}`;
-    const message = JSON.stringify({
-      event: `${event} on ${feedName}`,
-      timestamp,
-      videoUrl: videoUrl || feeds.find(f => f.id === feedId)?.url
-    });
+    
+    // Format message based on detection type
+    let message: string;
+    if (type === "audio") {
+      const probStr = probability ? ` (${(probability * 100).toFixed(1)}%)` : '';
+      message = JSON.stringify({
+        event: `${event}${probStr}`,
+        timestamp,
+        feedId: feedId || "audio",
+        type: "audio"
+      });
+    } else {
+      message = JSON.stringify({
+        event: `${event} on ${feedName}`,
+        timestamp,
+        videoUrl: videoUrl || feeds.find(f => f.id === feedId)?.url
+      });
+    }
+    
     addTerminalMessage(message);
     toast({
       title: "Detection Alert",
-      description: `${event} detected on ${feedName} at ${timestamp}`,
+      description: type === "audio" 
+        ? `${event} detected${probability ? ` (${(probability * 100).toFixed(1)}% confidence)` : ''}`
+        : `${event} detected on ${feedName} at ${timestamp}`,
     });
   };
 
