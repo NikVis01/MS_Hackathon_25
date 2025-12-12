@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
 // API endpoint to which we'll send the prompt data
-// Points to sound_AI.py endpoint for generating YAMNet categories
+// Points to main.py endpoint for generating YAMNet categories
 const API_ENDPOINT = "http://localhost:8000/recieve"; // Backend endpoint for prompt processing
 
 interface VideoFeedProps {

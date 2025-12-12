@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from infer import YOLODetector
 from sound_detector import SoundDetector
+from openai import OpenAI
+from dotenv import load_dotenv
 
 import uvicorn
 import threading
@@ -53,6 +55,11 @@ websocket_url = "http://localhost:8001/detection_output"  # WebSocket server HTT
 
 class ImageRequest(BaseModel):
     image_data: str
+
+class PromptPayload(BaseModel):
+    feed_id: str
+    detection_mode: str
+    prompt: str
 
 
 #### --- YOLO inference --- ###
@@ -125,6 +132,75 @@ async def disable_audio_detection():
 async def get_audio_detection_status():
     """Get audio detection status"""
     return {"enabled": audio_detection_enabled}
+
+#### --- OpenAI prompt processing (from sound_AI.py) --- ###
+
+# Load OpenAI client
+load_dotenv()
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+@app.post("/recieve")
+async def receive_prompt(payload: PromptPayload):
+    """
+    Process natural language prompt and generate YAMNet category names.
+    Integrated from sound_AI.py
+    """
+    result = update_yamnet_categories(payload.prompt)
+    return {
+        "status": "OK",
+        "received": payload.dict(),
+        "ai_response": result
+    }
+
+def update_yamnet_categories(prompt: str):
+    """Generate YAMNet categories from prompt using OpenAI"""
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an AI that analyzes prompts and returns a JSON list of YAMNet sound categories that are relevant to the prompt. Return a JSON array of strings."
+                },
+                {
+                    "role": "user",
+                    "content": f"Prompt: {prompt}. Generate a JSON list of relevant YAMNet categories. Please create approximately 5 categories, preferably well-trained and common ones. JUST print the list, nothing else, not even a json tag. If the prompt you recieved has more than one argument, try not to generalize"
+                }
+            ]
+        )
+
+        raw_content = response.choices[0].message.content
+        try:
+            categories = json.loads(raw_content)
+            print(f"Generated YAMNet categories: {categories}")
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"JSON error: {e}")
+            print(f"Content: {raw_content}")
+            return {
+                "status": "error",
+                "message": "Invalid JSON from OpenAI",
+                "yamnet_categories": []
+            }
+
+        # Save result to file
+        with open(yamnet_categories_path, 'w') as f:
+            json.dump(categories, f, indent=4)
+
+        # Trigger reload of categories in audio detector
+        reload_yamnet_categories()
+
+        return {
+            "status": "success",
+            "message": "YAMNet categories updated successfully",
+            "yamnet_categories": categories
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "yamnet_categories": []
+        }
 
 def camera_motion_yolo_thread():
     global latest_detections, video_frame

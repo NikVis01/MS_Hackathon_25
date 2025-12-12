@@ -99,9 +99,11 @@ This is a **hackathon prototype**, so not all components are fully / smoothly in
 
 The system consists of three main components:
 
-1. **Backend API Server** (`backend/main.py`) - Handles video streaming, YOLO object detection, and serves detection results via REST endpoints
-2. **Audio Processing Service** (`backend/sound_AI.py`) - Processes natural language prompts using OpenAI to generate relevant YAMNet sound category names (categories are saved to `yamnet_categories.json`)
-3. **YAMNet Audio Detector** (`backend/yamnet_detector.py`) - Uses TensorFlow Hub YAMNet model for audio classification, filtering results based on categories from `yamnet_categories.json`
+1. **Backend API Server** (`backend/main.py`) - Handles video streaming, YOLO object detection, audio detection, and prompt processing. Includes:
+   - YOLO video detection endpoints
+   - Audio detection with YAMNet (when enabled)
+   - OpenAI prompt processing endpoint (`/recieve`) for generating YAMNet categories
+2. **YAMNet Audio Detector** (`backend/yamnet_detector.py`) - Uses TensorFlow Hub YAMNet model for audio classification, filtering results based on categories from `yamnet_categories.json`
 4. **WebSocket Server** (`Frontend/websocket_server.py`) - Broadcasts detection events to connected frontend clients in real-time
 5. **Frontend Dashboard** (`Frontend/`) - React-based web interface for viewing video feeds, configuring detection modes, and receiving alerts
 6. **Camera Host Services** (`backend/camerahost_rasp.py`, `backend/hostcamer_laptop.py`) - Flask-based services for streaming video from cameras
@@ -115,10 +117,11 @@ The system consists of three main components:
 - Video feed with annotations is streamed via `/video_feed` endpoint (MJPEG)
 
 **Audio Pipeline (Fully Integrated):**
-- Natural language prompts are sent to `/recieve` endpoint (`sound_AI.py`)
+- Natural language prompts are sent to `/recieve` endpoint in `main.py`
 - OpenAI GPT-3.5 analyzes prompt and generates relevant YAMNet category names
 - Categories saved to `yamnet_categories.json`
-- `main.py` continuously monitors microphone input (when enabled)
+- Audio detector automatically reloads categories (no restart needed)
+- `main.py` continuously monitors microphone input (when enabled via `/audio-detection/enable`)
 - YAMNet model classifies audio and filters by categories from `yamnet_categories.json`
 - When sounds are detected above threshold, events are sent to WebSocket server
 - Detection events are broadcast via WebSocket to all connected frontend clients
@@ -168,14 +171,20 @@ The system consists of three main components:
    ```bash
    python main.py
    ```
-   The server will run on `http://localhost:8000`
+   The server will run on `http://localhost:8000` and includes:
+   - YOLO video detection
+   - Audio detection (YAMNet)
+   - Prompt processing endpoint (`/recieve`)
 
 6. In a separate terminal, start the WebSocket server:
    ```bash
    cd Frontend
+   # Make sure you're using the same Python environment with dependencies installed
    python websocket_server.py
    ```
-   The WebSocket server will run on `ws://localhost:1234`
+   The WebSocket server will run on:
+   - HTTP API: `http://localhost:8001` (for receiving detection events)
+   - WebSocket: `ws://localhost:1234` (for frontend connections)
 
 ### Frontend Setup
 
@@ -227,12 +236,12 @@ Note: These camera hosts use Flask (not FastAPI) and run on separate ports. The 
 - `POST /audio-detection/disable` - Disable audio detection
 - `GET /audio-detection/status` - Check if audio detection is enabled
 
-### Audio Processing API (`sound_AI.py`)
+### Audio Processing API (integrated in `main.py`)
 
 - `POST /recieve` - Process natural language prompt and generate YAMNet category names
   - Request body: `{"feed_id": "string", "detection_mode": "string", "prompt": "string"}`
   - Returns: Updated YAMNet category names based on prompt analysis (saved to `yamnet_categories.json`)
-  - Categories are automatically reloaded by `main.py` when the file is updated
+  - Categories are automatically reloaded by the audio detector when the file is updated
 
 ### WebSocket Server (`websocket_server.py`)
 
@@ -368,7 +377,7 @@ YAMNet category names are dynamically generated based on natural language prompt
 - WebSocket server port (1234) must match the frontend configuration in `Index.tsx`
 - OpenAI API calls are made for every prompt submission to generate relevant sound category names
 - Video processing runs at approximately 20 FPS with a 0.05s sleep between frames
-- The frontend prompt submission endpoint (`VideoFeed.tsx`) sends prompts to `/recieve` endpoint in `sound_AI.py` and automatically enables audio detection
+- The frontend prompt submission endpoint (`VideoFeed.tsx`) sends prompts to `/recieve` endpoint in `main.py` and automatically enables audio detection
 - The `sound_detector.py` module supports both YAMNet (via `use_yamnet=True`) and custom AudioCNN models
 - **YAMNet is fully integrated into `main.py`** - audio detection runs continuously when enabled
 - Audio detection automatically reloads `yamnet_categories.json` when updated (no restart needed)
@@ -397,23 +406,3 @@ As a hackathon prototype, the system has several limitations:
 
 ---
 
-
-
-## Future Improvements
-
-
-
-Potential enhancements for production use:
-
-- Implement proper authentication and user management
-- Add database for storing detection history and configurations
-- Support for multiple camera sources with dynamic configuration
-- Improved error handling and logging
-- Audio stream processing integration
-- Video recording and playback functionality
-- Mobile app support
-- Cloud deployment configuration
-- Performance optimization for higher frame rates
-- Integration with Azure services (as mentioned in hackathon context)
-
----
