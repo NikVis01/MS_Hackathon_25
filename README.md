@@ -165,6 +165,7 @@ The system consists of three main components:
    ```
    OPENAI_API_KEY=your_api_key_here
    OPENAI_DEPLOYMENT_NAME=your_deployment_name
+   CAMERA_FEED_URL=0  # Use 0 for local webcam, or http://your-camera-url:port/video_feed for remote camera
    ```
 
 5. Start the main backend server:
@@ -373,7 +374,7 @@ YAMNet category names are dynamically generated based on natural language prompt
 
 
 - The prototype uses YOLOv8n (nano) model by default for faster inference
-- Camera feed URL in `main.py` is currently hardcoded to `http://130.229.141.234:5173/video_feed`
+- Camera feed URL in `main.py` can be configured via `CAMERA_FEED_URL` environment variable (defaults to `0` for local webcam)
 - WebSocket server port (1234) must match the frontend configuration in `Index.tsx`
 - OpenAI API calls are made for every prompt submission to generate relevant sound category names
 - Video processing runs at approximately 20 FPS with a 0.05s sleep between frames
@@ -385,6 +386,19 @@ YAMNet category names are dynamically generated based on natural language prompt
 - The AudioCNN model is available as an alternative when `use_yamnet=False`
 - Camera host services use Flask and run on separate ports from the main FastAPI backend
 - The system is designed for local development and may require configuration changes for production deployment
+
+### Azure/Cloud Deployment
+
+The project was built during a Microsoft Azure hackathon and includes infrastructure for cloud deployment:
+
+- **VM Streaming Support**: The codebase includes support for streaming video/audio from remote VMs
+  - Camera feed URL can be configured via `CAMERA_FEED_URL` environment variable (e.g., `http://your-vm-ip:port/video_feed`)
+  - `sound_detector.py` includes `vm_url` parameter for fetching audio streams from remote VMs
+  - `detect_sounds_from_vm_stream()` method supports remote audio processing
+
+- **Azure OpenAI Integration**: The `.env` file includes `OPENAI_DEPLOYMENT_NAME` for Azure OpenAI deployments
+
+- **Current Status**: While the architecture supports cloud/VM deployment, there are no deployment configurations included (no Dockerfile, Azure Resource Manager templates, or deployment scripts). The system currently runs on localhost but can be adapted for Azure VM deployment with configuration changes.
 
 ---
 

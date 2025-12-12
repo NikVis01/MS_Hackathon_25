@@ -204,7 +204,13 @@ def update_yamnet_categories(prompt: str):
 
 def camera_motion_yolo_thread():
     global latest_detections, video_frame
-    cap = cv2.VideoCapture("http://130.229.141.234:5173/video_feed")
+    # Get camera URL from environment variable or use default
+    camera_url = os.getenv("CAMERA_FEED_URL")
+    if camera_url is None:
+        camera_url = 0  # Default to 0 (local webcam) if not set
+    elif camera_url.isdigit():
+        camera_url = int(camera_url)  # Convert to int if it's a device index
+    cap = cv2.VideoCapture(camera_url)
 
     if not cap.isOpened():
         print("Cannot open camera")
